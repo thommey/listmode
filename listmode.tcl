@@ -127,6 +127,7 @@ proc listmode_dcc_pls {pre hand idx text} {
 	} else {
 		putdcc $idx "Added: [listmode_formatentry $err]"
 	}
+	return 1
 }
 
 proc listmode_dcc_mns {hand idx text} {
@@ -147,6 +148,7 @@ proc listmode_dcc_mns {hand idx text} {
 	}
 	set entry [listmode_del $text]
 	putdcc $idx "Deleted: [listmode_formatentry $entry]"
+	return 1
 }
 
 proc listmode_dcc_show {pre hand idx text} {
@@ -175,7 +177,7 @@ proc listmode_dcc_show {pre hand idx text} {
 			}
 		}
 	}
-	
+	return 1
 }
 
 ###################
