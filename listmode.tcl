@@ -85,7 +85,7 @@ proc listmode_help {} {
 		puts $fs "See also: +$command, -$command"
 	}
 	close $fs
-	addhelp listmode.help
+	loadhelp listmode.help
 }
 
 proc listmode_bind {} {
