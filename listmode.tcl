@@ -54,9 +54,38 @@ package require eggdrop 1.6.21
 proc listmode_init {} {
 	listmode_load
 	listmode_bind
+	listmode_help
 	if {$::server ne "" && (![info exists ::modeconfig] || $::modeconfig eq "" || ![info exists ::chantypes] || $::chantypes eq "")} {
 		putserv "VERSION"
 	}
+}
+
+proc listmode_help {} {
+	global help-path listmode_commands
+	if {[catch {open [file join ${help-path} listmode.help] w} fs]} {
+		putlog "Listmode: WARNING: Could not create help-file in ${help-path}: $fs"
+		return
+	}
+	dict for {command modechar} $listmode_commands {
+		puts $fs "%{help=+$command}%{+m|m}"
+		puts $fs "###  %b+$command%b \[channel] <hostmask> \[%%<XdXhXm>] \[reason]"
+		puts $fs "Adds a mask to the list of +$modechar masks stored on the bot, with optional reason and"
+		puts $fs "ban time. This ban is stored with your handle as the creator, and will be"
+		puts $fs "in effect for every channel if no channel is specified. Prefixing a comment"
+		puts $fs "See also: ${command}s, -$command"
+		puts $fs "%{help=-$command}%{+m|m}"
+		puts $fs "###  %b-$command%b <mask id>"
+		puts $fs "Delete a mask from the list of +$modechar masks stored on the bot."
+		puts $fs "The ID is from %b${command}s%b."
+		puts $fs "See also: ${command}s, +$command"
+		puts $fs "%{help=${command}s}%{+m|m}"
+		puts $fs "###  %b${command}s%b \[channel]"
+		puts $fs "Lists all masks added to the list of +$modechar masks stored on the bot."
+		puts $fs "If a channel is specified, it lists both the global and channel masks."
+		puts $fs "See also: +$command, -$command"
+	}
+	close $fs
+	addhelp listmode.help
 }
 
 proc listmode_bind {} {
