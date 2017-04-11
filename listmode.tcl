@@ -501,4 +501,8 @@ proc listmode_parsemodestr {modestr victims} {
 }
 
 listmode_init
-putlog "Listmodes support loaded"
+if {![dict size $listmode_commands]} {
+	putlog "Listmode: WARNING: loaded, but no commands defined."
+} else {
+	putlog "Listmode support loaded, dcc commands: [join [dict keys $listmode_commands] ", "]"
+}
