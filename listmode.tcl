@@ -180,7 +180,8 @@ proc listmode_dcc_pls {pre hand idx text} {
 	return 1
 }
 
-proc listmode_dcc_mns {hand idx text} {
+proc listmode_dcc_mns {pre hand idx text} {
+	# pre ignored
 	global listmode_data listmode_modechars
 	if {$text eq "" || ![string is digit -strict $text]} {
 		putdcc $idx "Syntax: $::lastbind <id>"
