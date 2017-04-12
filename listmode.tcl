@@ -44,7 +44,11 @@ set ::listmode_noreason "No reason."
 set ::listmode_nostick "+b"
 
 # Formatstring for the format command for mask entries
-set ::listmode_format {[%5s] %s created by: %s, expires: %s, reason: %s}
+set ::listmode_format { [%5s] %s created by: %s, expires: %s, reason: %s}
+
+# Templates for command names, use $cmd for the commands set above and $mc for modechar
+# Descriptions are: pls = adding, mns = removing, show = listing
+set ::listmode_templates {+$cmd pls -$cmd mns $cmd show ${cmd}s show add$mc pls del$mc mns rem$mc mns ${mc}l show}
 
 ###################
 # End of Settings
@@ -66,31 +70,49 @@ proc listmode_init {} {
 	}
 }
 
+proc listmode_commandmap {} {
+	global listmode_commands listmode_templates
+	set result ""
+	dict for {cmd mc} $listmode_commands {
+		dict for {template function} $listmode_templates {
+			set realcommand [subst -nobackslashes -nocommands $template]
+			dict set result $realcommand "${function} ${mc}"
+		}
+	}
+	return $result
+}
+
 proc listmode_help {} {
-	global help-path listmode_commands
+	global help-path listmode_commands listmode_template
 	if {[catch {open [file join ${help-path} listmode.help] w} fs]} {
 		putlog "Listmode: WARNING: Could not create help-file in ${help-path}: $fs"
 		return
 	}
-	dict for {command modechar} $listmode_commands {
-		puts $fs "%{help=+$command}%{+m|m}"
-		puts $fs "###  %b+$command%b \[channel] <hostmask> \[%%<XdXhXm>] \[reason]"
-		puts $fs "Adds a mask to the list of +$modechar masks stored on the bot, with optional reason and"
-		puts $fs "ban time. This ban is stored with your handle as the creator, and will be"
-		puts $fs "in effect for every channel if no channel is specified. Prefixing a comment"
-		puts $fs "See also: ${command}s, -$command"
-		puts $fs "%{help=-$command}%{+m|m}"
-		puts $fs "###  %b-$command%b <mask id>"
-		puts $fs "Delete a mask from the list of +$modechar masks stored on the bot."
-		puts $fs "The ID is from %b${command}s%b."
-		puts $fs "See also: ${command}s, +$command"
-		puts $fs "%{help=${command}s}%{+m|m}"
-		puts $fs "###  %b${command}s%b \[channel]"
-		puts $fs "Lists all masks added to the list of +$modechar masks stored on the bot."
-		puts $fs "If a channel is specified, it lists both the global and channel masks."
-		puts $fs "See also: +$command, -$command"
+	dict for {command info} [listmode_commandmap] {
+		lassign $info function modechar
+		puts $fs "%{help=$command}%{+m|m}"
+		switch -exact -- $function {
+			pls {
+				puts $fs "###  %b$command%b \[channel] <hostmask> \[%%<XdXhXm>] \[reason]"
+				puts $fs "Adds a mask to the list of +$modechar masks stored on the bot, with optional reason and"
+				puts $fs "ban time. This ban is stored with your handle as the creator, and will be"
+				puts $fs "in effect for every channel if no channel is specified. Prefixing a comment"
+			} mns {
+				puts $fs "%{help=$command}%{+m|m}"
+				puts $fs "###  %b$command%b <mask id>"
+				puts $fs "Delete a mask from the list of +$modechar masks stored on the bot."
+			} show {
+				puts $fs "%{help=${command}s}%{+m|m}"
+				puts $fs "###  %b${command}s%b \[channel]"
+				puts $fs "Lists all masks added to the list of +$modechar masks stored on the bot."
+				puts $fs "If a channel is specified, it lists both the global and channel masks."
+			} default {
+				error "Unknown function: $function"
+			}
+		}
 	}
 	close $fs
+	unloadhelp listmode.help
 	loadhelp listmode.help
 }
 
@@ -98,17 +120,10 @@ proc listmode_bind {} {
 	global listmode_commands listmode_modechars
 	set listmode_modechars ""
 	set commands ""
+	set listmode_modechars [dict values $listmode_commands]
 	# Expand listmode commands into individual binds
-	dict for {command modechar} $listmode_commands {
-		if {[string length $modechar] != 1} {
-			putlog "Lastmodes: ERROR: '$modechar' is not a single character."
-			return
-		}
-		dict set commands "+$command" [list listmode_dcc_pls $modechar]
-		dict set commands "-$command" [list listmode_dcc_mns]
-		dict set commands "$command" [list listmode_dcc_show $modechar]
-		dict set commands "${command}s" [list listmode_dcc_show $modechar]
-		append listmode_modechars $modechar
+	dict for {command function} [listmode_commandmap] {
+		dict set commands "$command" listmode_dcc_${function}
 	}
 	foreach bind [binds listmode_*] {
 		lassign $bind type flags name hits proc
@@ -208,7 +223,7 @@ proc listmode_dcc_show {pre hand idx text} {
 			putdcc $idx "  (none)"
 		} else {
 			dict for {id entry} $entries {
-				putdcc $idx "  [listmode_formatentry [dict create $id $entry]]"
+				putdcc $idx "[listmode_formatentry [dict create $id $entry]]"
 			}
 		}
 	}
@@ -346,7 +361,7 @@ proc listmode_add {chan mc mask hand duration reason} {
 proc listmode_newid {} {
 	global listmode_data
 	set existing [dict keys $listmode_data]
-	for {set id 1} {$id < 32768 && $id in $existing} {incr id} {}	
+	for {set id 1} {$id < 32768 && $id in $existing} {incr id} {}
 	if {$id == 32768} {
 		error "Listmode: ERROR: No free ID found!"
 	}
