@@ -40,6 +40,12 @@ set ::listmode_tz "Europe/Berlin"
 # Default reason if not specified
 set ::listmode_noreason "No reason."
 
+# Users with these flag won't trigger re-setting the mask (they are all sticky otherwise)
+set ::listmode_nostick "+b"
+
+# Formatstring for the format command for mask entries
+set ::listmode_format {[%5s] %s created by: %s, expires: %s, reason: %s}
+
 ###################
 # End of Settings
 ###################
@@ -216,7 +222,7 @@ proc listmode_dcc_show {pre hand idx text} {
 proc listmode_formatentry {entry} {
 	lassign $entry id info
 	dict with info {
-		return [format {[%5s] %s created by: %s, expires: %s, reason: %s} $id $mask $creator [expr {$expiry ? [clock format $expiry -timezone $::listmode_tz] : "never"}] $reason]
+		return [format $::listmode_format $id $mask $creator [expr {$expiry ? [clock format $expiry -timezone $::listmode_tz] : "never"}] $reason]
 	}
 }
 
@@ -278,7 +284,7 @@ proc listmode_getbyid {id} {
 }
 
 proc listmode_getbymask {data mask} {
-	listmode_getby $data {[dict get $entry mask] eq [lindex $args 0]} $mask
+	listmode_getby $data {[string equal -nocase [dict get $entry mask] [lindex $args 0]]} $mask
 }
 
 proc listmode_getbychan {data chan} {
@@ -387,8 +393,15 @@ proc listmode_durationmultiplier {unit} {
 # IRC events
 ###################
 
-proc listmode_chanmode {chan plsmns mc mask} {
-	# unused
+proc listmode_chanmode {nick host chan plsmns mc mask} {
+	global listmode_nostick
+	if {$plsmns || [matchattr [nick2hand $nick] $listmode_nostick $chan]} {
+		return
+	}
+	set masks [dict create {*}[listmode_getdata $chan $mc] {*}[listmode_getdata global $mc]]
+	if {[dict size [listmode_getbymask $masks $mask]]} {
+		putquick "MODE $chan +q $mask"
+	}
 	return 0
 }
 
@@ -474,11 +487,12 @@ proc listmode_parsemode {from key text} {
 	set text [split $text]
 	set chan [string tolower [lindex $text 0]]
 	if {![validchan $chan]} { return }
+	lassign [split $from !] nick host
 	foreach {mode victim} [listmode_parsemodestr [lindex $text 1] [lrange $text 2 end]] {
 		set victim [string tolower $victim]
 		lassign [split $mode ""] plsmns mc
 		if {$mc in [split $::listmode_modechars ""]} {
-			listmode_chanmode $chan [expr {$plsmns eq "+"}] $mc $victim
+			listmode_chanmode $nick $host $chan [expr {$plsmns eq "+"}] $mc $victim
 		}
 	}
 	return 0
