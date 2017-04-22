@@ -31,6 +31,10 @@
 # key/value list of <command> <modechar>
 set ::listmode_commands {"quiet" "q"}
 
+# Verification proc per mode character
+# key/value list of <modechar> <verification proc>
+set ::listmode_verification {"q" "listmode_verify_normal_mask"}
+
 # Filename for storage (e.g. bot123.listmode)
 set ::listmode_file "LamestBot.listmode"
 
@@ -231,6 +235,23 @@ proc listmode_dcc_show {pre hand idx text} {
 	return 1
 }
 
+########################
+# Verification Functions
+########################
+# Return the mask, possibly modified.
+# Throw an error to mark it as invalid and prevent it from being set.
+########################
+
+proc listmode_verify_normal_mask {mask} {
+	# n -> n!*@*, n!u -> n!u@*, n@h -> *!u@h, n!u@h -> n!u@h
+	switch -glob -- $mask {
+		"*!*@*" { return $mask }
+		"*@*" { return *!$mask }
+		"*!*" { return $mask@* }
+		default { return $mask!*@* }
+	}
+}
+
 ###################
 # General Functions
 ###################
@@ -343,6 +364,14 @@ proc listmode_add {chan mc mask hand duration reason} {
 	set expiry [expr {$duration eq "" || $duration == 0 ? 0 : [clock add [clock seconds] $duration seconds]}]
 	if {$reason eq ""} {
 		set reason $::listmode_noreason
+	}
+	if {[dict exists $::listmode_verification $mc]} {
+		set verify [dict get $::listmode_verification $mc]
+		if {[catch {$verify $mask} newmask]} {
+			error $newmask
+		} else {
+			set mask $newmask
+		}
 	}
 	set data [listmode_getdata $chan $mc]
 	set existing [lrange [listmode_getbymask $data $mask] 0 1]
