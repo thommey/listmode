@@ -48,7 +48,7 @@ set ::listmode_noreason "No reason."
 set ::listmode_nostick "+b"
 
 # Formatstring for the format command for mask entries
-set ::listmode_format { [%5s] %s created by: %s, expires: %s, reason: %s}
+set ::listmode_format { [%5s] (%s) %s created by: %s, expires: %s, reason: %s}
 
 # Templates for command names, use $cmd for the commands set above and $mc for modechar
 # Descriptions are: pls = adding, mns = removing, show = listing
@@ -257,7 +257,7 @@ proc listmode_verify_normal_mask {mask} {
 proc listmode_formatentry {entry} {
 	lassign $entry id info
 	dict with info {
-		return [format $::listmode_format $id $mask $creator [expr {$expiry ? [clock format $expiry -timezone $::listmode_tz] : "never"}] $reason]
+		return [format $::listmode_format $id $chan $mask $creator [expr {$expiry ? [clock format $expiry -timezone $::listmode_tz] : "never"}] $reason]
 	}
 }
 
