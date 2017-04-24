@@ -108,6 +108,7 @@ proc listmode_help {} {
 				puts $fs "###  %b${command}%b \[channel]"
 				puts $fs "Lists all masks added to the list of +$modechar masks stored on the bot."
 				puts $fs "If a channel is specified, it lists both the global and channel masks."
+				puts $fs "Use all or * as a channel to list all."
 			} default {
 				error "Unknown function: $function"
 			}
@@ -213,22 +214,25 @@ proc listmode_dcc_show {pre hand idx text} {
 		return
 	}
 	if {$text ne ""} {
-		if {[string index $text 0] ni [split $::chantypes ""] || ![validchan $text]} {
+		if {$text eq "*" || $text eq "all"} {
+			set chans [list {*}[channels] global]
+		} elseif {[string index $text 0] ni [split $::chantypes ""] || ![validchan $text]} {
 			putdcc $idx "Invalid channel."
 			return
 		}
 		lappend chans $text
 	}
+	set entries ""
 	foreach chan $chans {
-		putdcc $idx "--- $chan masks ---"
-		set entries [listmode_getdata $chan $mc]
-		if {![dict size $entries]} {
-			putdcc $idx "  (none)"
-		} else {
-			dict for {id entry} [lsort -stride 2 -index 0 -increasing -integer $entries] {
-				putdcc $idx "[listmode_formatentry [dict create $id $entry]]"
-			}
-		}
+		set myentries [listmode_getdata $chan $mc]
+		lappend entries {*}$myentries
+	}
+	if {![llength $entries]} {
+		putdcc $idx "No entries found."
+		return
+	}
+	dict for {id entry} [lsort -stride 2 -index 0 -increasing -integer $entries] {
+		putdcc $idx "[listmode_formatentry [dict create $id $entry]]"
 	}
 	return 1
 }
