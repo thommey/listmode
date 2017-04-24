@@ -194,7 +194,7 @@ proc listmode_dcc_mns {pre hand idx text} {
 		putdcc $idx "Unknown mask id."
 		return
 	}
-	set flags [expr {[dict get $entry chan] eq "global" ? "m" : [list m|m $chan]}]
+	set flags [expr {[dict get $entry chan] eq "global" ? "m" : [list m|m [dict get $entry chan]]}]
 	if {![matchattr $hand {*}$flags]} {
 		putdcc $idx "No access."
 		return
