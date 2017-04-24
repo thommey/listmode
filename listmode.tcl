@@ -102,12 +102,10 @@ proc listmode_help {} {
 				puts $fs "ban time. This ban is stored with your handle as the creator, and will be"
 				puts $fs "in effect for every channel if no channel is specified. Prefixing a comment"
 			} mns {
-				puts $fs "%{help=$command}%{+m|m}"
 				puts $fs "###  %b$command%b <mask id>"
 				puts $fs "Delete a mask from the list of +$modechar masks stored on the bot."
 			} show {
-				puts $fs "%{help=${command}s}%{+m|m}"
-				puts $fs "###  %b${command}s%b \[channel]"
+				puts $fs "###  %b${command}%b \[channel]"
 				puts $fs "Lists all masks added to the list of +$modechar masks stored on the bot."
 				puts $fs "If a channel is specified, it lists both the global and channel masks."
 			} default {
