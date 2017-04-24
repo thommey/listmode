@@ -225,7 +225,7 @@ proc listmode_dcc_show {pre hand idx text} {
 		if {![dict size $entries]} {
 			putdcc $idx "  (none)"
 		} else {
-			dict for {id entry} $entries {
+			dict for {id entry} [lsort -stride 2 -index 0 -increasing -integer $entries] {
 				putdcc $idx "[listmode_formatentry [dict create $id $entry]]"
 			}
 		}
